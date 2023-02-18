@@ -1,4 +1,4 @@
-package com.codetaker.ammusic
+package com.codetaker.ammusic.service
 
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.codetaker.ammusic.activity.MainActivity
+import com.codetaker.ammusic.R
 
 class NotificationService(
     private val context: Context

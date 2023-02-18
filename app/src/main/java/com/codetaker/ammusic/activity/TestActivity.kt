@@ -1,7 +1,8 @@
-package com.codetaker.ammusic
+package com.codetaker.ammusic.activity
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import com.codetaker.ammusic.R
 
 class TestActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

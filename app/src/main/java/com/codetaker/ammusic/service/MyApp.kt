@@ -1,4 +1,4 @@
-package com.codetaker.ammusic
+package com.codetaker.ammusic.service
 
 import android.app.Application
 import android.app.NotificationChannel

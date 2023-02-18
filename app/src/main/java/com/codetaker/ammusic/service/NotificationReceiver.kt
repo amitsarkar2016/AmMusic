@@ -1,8 +1,9 @@
-package com.codetaker.ammusic
+package com.codetaker.ammusic.service
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.codetaker.ammusic.Counter
 
 class NotificationReceiver: BroadcastReceiver() {
 

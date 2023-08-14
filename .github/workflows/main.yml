@@ -1,0 +1,22 @@
+name: Build and Upload APK
+
+on:
+  push:
+    branches:
+      - main  # or the branch you want to trigger the workflow on
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up JDK
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+
+    - name: Build APK
+      run: ./gradlew assembleDebug  # Adjust the Gradle command as needed

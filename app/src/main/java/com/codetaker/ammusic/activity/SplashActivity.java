@@ -30,6 +30,6 @@ public class SplashActivity extends AppCompatActivity {
                 new int[]{Color.parseColor("#FE8A80"), Color.parseColor("#FE80AB"), Color.parseColor("#8B9DFE"), Color.parseColor("#80D7FE"), Color.parseColor("#01E4FE")},
                 null, Shader.TileMode.CLAMP);
         tv.getPaint().setShader(textShader);
-        new Handler().postDelayed(() -> startActivity(new Intent(getApplicationContext(), MainActivity.class)), 0);
+        new Handler().postDelayed(() -> startActivity(new Intent(getApplicationContext(), NewMainActivity.class)), 0);
     }
 }

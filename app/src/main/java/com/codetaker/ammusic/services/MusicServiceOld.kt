@@ -1,4 +1,4 @@
-package com.codetaker.ammusic.service
+package com.codetaker.ammusic.services
 
 import android.app.NotificationManager
 import android.app.Service
@@ -9,7 +9,7 @@ import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.core.app.NotificationCompat
 
-class MusicService : Service() {
+class MusicServiceOld : Service() {
 
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var mediaController: MediaControllerCompat
@@ -111,8 +111,8 @@ class MusicService : Service() {
     private val binder = MyBinder()
 
     inner class MyBinder : Binder() {
-        fun getService(): MusicService {
-            return this@MusicService
+        fun getService(): MusicServiceOld {
+            return this@MusicServiceOld
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.codetaker.ammusic
+package com.codetaker.ammusic.utils
 
 import android.content.Context
 import android.media.MediaPlayer

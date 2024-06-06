@@ -1,14 +1,17 @@
 package com.codetaker.ammusic.db
 
+import androidx.lifecycle.LiveData
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.codetaker.ammusic.models.Song
+
+@Dao
 interface SongDao {
-
-    fun addSong(song: Song): Long
-
+    @Query("SELECT * FROM songs")
     fun getAllSongs(): List<Song>
 
-    fun getSongById(id: Int): Song?
-
-    fun updateSong(song: Song): Int
-
-    fun deleteSong(id: Int): Boolean
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(songs: List<Song>)
 }

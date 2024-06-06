@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg"
     android:padding="@dimen/_20sdp"
-    tools:context=".activity.PlaySong">
+    tools:context=".activities.PlaySong">
 
     <ImageView
         android:id="@+id/albumImage"
@@ -29,14 +29,25 @@
         android:marqueeRepeatLimit="marquee_forever"
         android:scrollHorizontally="true"
         android:singleLine="true"
-        android:text="TextView"
+        android:text="Song Name"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/albumImage"
-        app:layout_constraintVertical_bias="0.19999999" />
+        app:layout_constraintVertical_bias="0.201" />
+
+    <TextView
+        android:id="@+id/songArtist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:text="Artist Name"
+        android:textSize="@dimen/_15ssp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/songName" />
 
     <LinearLayout
         android:id="@+id/LL"
@@ -51,24 +62,26 @@
 
         <ImageView
             android:id="@+id/previous"
-            android:layout_width="@dimen/_50sdp"
-            android:layout_height="@dimen/_50sdp"
+            android:layout_width="@dimen/_35sdp"
+            android:layout_height="@dimen/_35sdp"
             android:layout_weight="1"
-            app:srcCompat="@drawable/previous" />
+            android:rotation="180"
+            app:srcCompat="@drawable/ic_next" />
 
         <ImageView
             android:id="@+id/play"
-            android:layout_width="@dimen/_50sdp"
-            android:layout_height="@dimen/_50sdp"
+            android:layout_width="@dimen/_35sdp"
+            android:layout_height="@dimen/_35sdp"
+            android:layout_marginHorizontal="@dimen/_12sdp"
             android:layout_weight="1"
-            app:srcCompat="@drawable/pause" />
+            app:srcCompat="@drawable/ic_pause_button" />
 
         <ImageView
             android:id="@+id/next"
-            android:layout_width="@dimen/_50sdp"
-            android:layout_height="@dimen/_50sdp"
+            android:layout_width="@dimen/_35sdp"
+            android:layout_height="@dimen/_35sdp"
             android:layout_weight="1"
-            app:srcCompat="@drawable/next" />
+            app:srcCompat="@drawable/ic_next" />
     </LinearLayout>
 
     <TextView
@@ -76,7 +89,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginLeft="24dp"
         android:layout_marginTop="12dp"
         android:text="00:00"
         app:layout_constraintStart_toStartOf="@+id/seekBar"
@@ -87,7 +99,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:layout_marginRight="24dp"
+        android:layout_marginEnd="24dp"
         android:text="04:23"
         app:layout_constraintEnd_toEndOf="@+id/seekBar"
         app:layout_constraintTop_toBottomOf="@+id/seekBar" />
@@ -96,6 +108,8 @@
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:progressTint="@color/mainColor"
+        android:thumb="@drawable/seek_thumb"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"

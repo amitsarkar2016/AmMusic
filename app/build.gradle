@@ -10,8 +10,8 @@ android {
         applicationId "com.codetaker.ammusic"
         minSdk 16
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode System.getenv("GITHUB_RUN_NUMBER")?.toInteger() ?: 1
+        versionName "1.0.${System.getenv("GITHUB_RUN_NUMBER")}"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         android.defaultConfig.vectorDrawables.useSupportLibrary = true

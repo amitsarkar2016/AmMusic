@@ -1,0 +1,78 @@
+name: Build & Upload Android Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build Android AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build Release AAB
+        run: ./gradlew bundleRelease
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+
+      - name: Upload AAB as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: app/build/outputs/bundle/release/app-release.aab
+
+      # ⬇️ Upload to Google Play (Optional: only if API access is available)
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: ${{ secrets.PLAY_KEY }}
+          packageName: com.your.app.package
+          releaseFile: app/build/outputs/bundle/release/app-release.aab
+          track: internal
+
+      # ✅ Telegram Notification (Success)
+      - name: Notify Telegram (Success)
+        if: success()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+          -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+          -d text="✅ Android Build & Upload Success!\nProject: ${{ github.repository }}\nRun: #${{ github.run_number }}\nTrack: internal"
+
+      # ❌ Telegram Notification (Failure)
+      - name: Notify Telegram (Failure)
+        if: failure()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
+          -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
+          -d text="❌ Android Build or Upload Failed!\nProject: ${{ github.repository }}\nRun: #${{ github.run_number }}"
+
+      # ✅ Discord Notification (Success)
+      - name: Notify Discord (Success)
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{"content":"✅ Android Build & Upload Successful! (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
+          ${{ secrets.DISCORD_WEBHOOK }}
+
+      # ❌ Discord Notification (Failure)
+      - name: Notify Discord (Failure)
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{"content":"❌ Build or Upload Failed! Check GitHub Actions — Run #${{ github.run_number }}"}' \
+          ${{ secrets.DISCORD_WEBHOOK }}

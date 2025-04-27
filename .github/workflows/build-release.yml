@@ -23,10 +23,18 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x ./gradlew
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" | base64 -d > keystore.jks
+
       - name: Build Release AAB
         run: ./gradlew bundleRelease
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          SIGNING_STORE_FILE: keystore.jks
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
       - name: Upload AAB as Artifact
         uses: actions/upload-artifact@v4

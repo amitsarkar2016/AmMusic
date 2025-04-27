@@ -48,7 +48,7 @@ jobs:
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ secrets.PLAY_KEY }}
-          packageName: com.your.app.package
+          packageName: com.codetaker.ammusic
           releaseFile: app/build/outputs/bundle/release/app-release.aab
           track: internal
 

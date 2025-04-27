@@ -15,7 +15,7 @@ import androidx.media2.session.MediaSessionService
 import androidx.media2.session.SessionCommand
 import androidx.media2.session.SessionResult
 import com.codetaker.ammusic.R
-import com.codetaker.ammusic.activities.MainActivity
+import com.codetaker.ammusic.ui.main.MainActivity
 import com.codetaker.ammusic.models.Song
 import java.util.concurrent.Executor
 

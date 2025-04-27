@@ -9,5 +9,10 @@ data class Song(
     val artist: String,
     val album: String,
     val duration: Long,
+    val dateAdded: Long,
+    val albumId: Long,
+    val albumArtPath: String?,
     @PrimaryKey val filePath: String,
+    var isFavorite: Boolean = false,
+    var isPlaying: Boolean = false,
 )

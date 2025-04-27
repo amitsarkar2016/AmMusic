@@ -46,6 +46,12 @@ class SharePrefManager private constructor(context: Context) {
     }
 
     fun getToken(): String? = getString(TOKEN)
+    fun getOnBoardingStatus(): Boolean {
+        return sharedPreferences.getBoolean("isOnBoardingDone", false)
+    }
+    fun setOnBoardingStatus(status: Boolean) {
+        sharedPreferences.edit().putBoolean("isOnBoardingDone", status).apply()
+    }
 
     companion object {
         @Volatile

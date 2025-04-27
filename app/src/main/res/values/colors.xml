@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="mainColor">#2196F3</color>
-    <color name="secondColor">#03A9F4</color>
+<!--    <color name="mainColor">#2196F3</color>-->
+<!--    <color name="secondColor">#03A9F4</color>-->
+
+<!--    <color name="mainColor">#FE80AB</color>-->
+<!--    <color name="secondColor">#FE5890</color>-->
+
+    <color name="mainColor">#4488FF</color>
+    <color name="secondColor">#80AEFE</color>
 
     <color name="purple200">#FFBB86FC</color>
     <color name="statusColor">@color/secondColor</color>
@@ -12,4 +18,6 @@
     <color name="shadowColor">#ACACAC</color>
     <color name="darkerGray">#aaa</color>
     <color name="stockColor">#e6e6e6</color>
+    <color name="backgroundColor">#FFFFFF</color>
+    <color name="textHintColor">#ECECEC</color>
 </resources>

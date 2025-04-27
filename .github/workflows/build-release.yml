@@ -1,4 +1,4 @@
-name: Build & Upload Android Release
+name: Build & Upload ${{ secrets.PROJECT_NAME }} Android Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build Android AAB
+    name: Build ${{ secrets.PROJECT_NAME }} Android AAB
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +29,7 @@ jobs:
           echo "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" | base64 -d > app/keystore.jks
           chmod 600 app/keystore.jks
 
-      - name: Build Release AAB
+      - name: Build ${{ secrets.PROJECT_NAME }} Release AAB
         run: ./gradlew bundleRelease
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
@@ -38,7 +38,7 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
-      - name: Upload AAB as Artifact
+      - name: Upload ${{ secrets.PROJECT_NAME }} AAB as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
@@ -63,7 +63,7 @@ jobs:
           Run: #${{ github.run_number }}
           Track: internal"
 
-      # Telegram Notification (Failure)
+    # Telegram Notification (Failure)
       - name: Notify Telegram (Failure)
         if: failure()
         run: |
@@ -72,6 +72,7 @@ jobs:
           -d text="❌ Android Build or Upload Failed!
           Project: ${{ github.repository }}
           Run: #${{ github.run_number }}"
+
 
       # Discord Notification (Success)
       - name: Notify Discord (Success)

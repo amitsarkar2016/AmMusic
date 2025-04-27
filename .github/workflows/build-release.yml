@@ -25,7 +25,9 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" | base64 -d > keystore.jks
+          mkdir -p app
+          echo "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" | base64 -d > app/keystore.jks
+          chmod 600 app/keystore.jks
 
       - name: Build Release AAB
         run: ./gradlew bundleRelease
@@ -56,7 +58,10 @@ jobs:
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d text="✅ Android Build & Upload Success!\nProject: ${{ github.repository }}\nRun: #${{ github.run_number }}\nTrack: internal"
+          -d text="✅ Android Build & Upload Success!
+          Project: ${{ github.repository }}
+          Run: #${{ github.run_number }}
+          Track: internal"
 
       # Telegram Notification (Failure)
       - name: Notify Telegram (Failure)
@@ -64,7 +69,9 @@ jobs:
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d text="❌ Android Build or Upload Failed!\nProject: ${{ github.repository }}\nRun: #${{ github.run_number }}"
+          -d text="❌ Android Build or Upload Failed!
+          Project: ${{ github.repository }}
+          Run: #${{ github.run_number }}"
 
       # Discord Notification (Success)
       - name: Notify Discord (Success)

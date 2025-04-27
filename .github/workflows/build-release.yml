@@ -49,7 +49,7 @@ jobs:
         with:
           serviceAccountJson: ${{ secrets.PLAY_KEY }}
           packageName: com.codetaker.ammusic
-          releaseFile: app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
           track: internal
 
       # Telegram Notification (Success)
@@ -80,8 +80,7 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"✅ Android Build & Upload Successful!
-          (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
+          -d '{"content":"✅ Android Build & Upload Successful! (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
           ${{ secrets.DISCORD_WEBHOOK }}
 
       # Discord Notification (Failure)
@@ -90,6 +89,5 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"❌ Build or Upload Failed! 
-          Check GitHub Actions — Run #${{ github.run_number }}"}' \
+          -d '{"content":"❌ Build or Upload Failed! Check GitHub Actions — Run #${{ github.run_number }}"}' \
           ${{ secrets.DISCORD_WEBHOOK }}

@@ -1,4 +1,4 @@
-name: Build & Upload ${{ secrets.PROJECT_NAME }} Android Release
+name: Build & Upload Android Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build ${{ secrets.PROJECT_NAME }} Android AAB
+    name: Build Android AAB
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +29,7 @@ jobs:
           echo "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" | base64 -d > app/keystore.jks
           chmod 600 app/keystore.jks
 
-      - name: Build ${{ secrets.PROJECT_NAME }} Release AAB
+      - name: Build Release AAB
         run: ./gradlew bundleRelease
         env:
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
@@ -38,7 +38,7 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
 
-      - name: Upload ${{ secrets.PROJECT_NAME }} AAB as Artifact
+      - name: Upload AAB as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release
@@ -80,7 +80,8 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"✅ Android Build & Upload Successful! (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
+          -d '{"content":"✅ Android Build & Upload Successful!
+          (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
           ${{ secrets.DISCORD_WEBHOOK }}
 
       # Discord Notification (Failure)
@@ -89,5 +90,6 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"❌ Build or Upload Failed! Check GitHub Actions — Run #${{ github.run_number }}"}' \
+          -d '{"content":"❌ Build or Upload Failed! 
+          Check GitHub Actions — Run #${{ github.run_number }}"}' \
           ${{ secrets.DISCORD_WEBHOOK }}

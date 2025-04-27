@@ -52,8 +52,12 @@ jobs:
         with:
           serviceAccountJson: ${{ secrets.PLAY_KEY }}
           packageName: com.codetaker.ammusic
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          releaseFile: app/build/outputs/bundle/release/app-release.aab
           track: internal
+
+      - name: Print absolute path to the AAB
+        run: |
+          echo "Absolute path to the .aab file: $(realpath app/build/outputs/bundle/release/app-release.aab)"
 
       # Telegram Notification (Success)
       - name: Notify Telegram (Success)

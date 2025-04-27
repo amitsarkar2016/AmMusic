@@ -34,7 +34,6 @@ jobs:
           name: app-release
           path: app/build/outputs/bundle/release/app-release.aab
 
-      # ⬇️ Upload to Google Play (Optional: only if API access is available)
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
         with:
@@ -43,7 +42,7 @@ jobs:
           releaseFile: app/build/outputs/bundle/release/app-release.aab
           track: internal
 
-      # ✅ Telegram Notification (Success)
+      # Telegram Notification (Success)
       - name: Notify Telegram (Success)
         if: success()
         run: |
@@ -51,7 +50,7 @@ jobs:
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
           -d text="✅ Android Build & Upload Success!\nProject: ${{ github.repository }}\nRun: #${{ github.run_number }}\nTrack: internal"
 
-      # ❌ Telegram Notification (Failure)
+      # Telegram Notification (Failure)
       - name: Notify Telegram (Failure)
         if: failure()
         run: |
@@ -59,7 +58,7 @@ jobs:
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
           -d text="❌ Android Build or Upload Failed!\nProject: ${{ github.repository }}\nRun: #${{ github.run_number }}"
 
-      # ✅ Discord Notification (Success)
+      # Discord Notification (Success)
       - name: Notify Discord (Success)
         if: success()
         run: |
@@ -68,7 +67,7 @@ jobs:
           -d '{"content":"✅ Android Build & Upload Successful! (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
           ${{ secrets.DISCORD_WEBHOOK }}
 
-      # ❌ Discord Notification (Failure)
+      # Discord Notification (Failure)
       - name: Notify Discord (Failure)
         if: failure()
         run: |

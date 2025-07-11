@@ -432,16 +432,6 @@ jobs:
           name: signed-bundle-${{ github.run_number }}
           path: ./artifacts
 
-      - name: Generate release notes
-        id: release_notes
-        run: |
-          # Generate release notes from recent commits
-          git log --oneline -10 --pretty=format:"• %s" > release_notes.txt
-          
-          # Set as output
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.txt >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

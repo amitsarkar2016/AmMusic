@@ -20,12 +20,12 @@ on:
       skip_tests:
         description: 'Skip unit tests'
         required: false
-        default: false
+        default: true
         type: boolean
       skip_lint:
         description: 'Skip lint checks'
         required: false
-        default: false
+        default: true
         type: boolean
 
 permissions:

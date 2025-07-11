@@ -435,15 +435,13 @@ jobs:
       - name: Generate release notes
         id: release_notes
         run: |
-          # Create release notes file
-          echo "## What's New in v${{ github.run_number }}" > release_notes.md
-          echo "" >> release_notes.md
-          git log --oneline -10 --pretty=format:"• %s" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "## Build Information" >> release_notes.md
-          echo "- Build Number: ${{ github.run_number }}" >> release_notes.md
-          echo "- Track: ${{ inputs.track || 'internal' }}" >> release_notes.md
-          echo "- Commit: ${{ github.sha }}" >> release_notes.md
+          # Generate release notes from recent commits
+          git log --oneline -10 --pretty=format:"• %s" > release_notes.txt
+          
+          # Set as output
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

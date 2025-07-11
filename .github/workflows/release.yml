@@ -2,43 +2,179 @@ name: Deploy To Google Play
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play Store track (internal/alpha/beta/production)'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      skip_tests:
+        description: 'Skip unit tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  JAVA_VERSION: 17
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2
 
 jobs:
   test:
     name: Unit Test
     runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup JDK 17
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Grant execute permissions for gradlew
         run: chmod +x gradlew
 
       - name: Run unit tests
-        run: ./gradlew clean testDebug
+        run: ./gradlew clean testDebug --stacktrace
 
-  distribute:
-    name: Distribute bundle to Google Play
-    needs: test
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+          retention-days: 30
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: app/build/reports/coverage/
+          retention-days: 30
+
+  lint:
+    name: Lint Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup JDK 17
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
+
+      - name: Grant execute permissions for gradlew
+        run: chmod +x gradlew
+
+      - name: Run lint
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Upload lint results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-results
+          path: app/build/reports/lint-results-debug.html
+          retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  distribute:
+    name: Distribute bundle to Google Play
+    needs: [test, lint, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 45
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" ]; then
+            echo "Error: SIGNING_STORE_FILE_BASE64 secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.PLAY_KEY }}" ]; then
+            echo "Error: PLAY_KEY secret is not set"
+            exit 1
+          fi
 
       - name: Version Bump
         uses: chkfung/android-version-actions@v1.2.3
@@ -49,17 +185,42 @@ jobs:
       - name: Grant execute permissions for gradlew
         run: chmod +x gradlew
 
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Generate release notes from recent commits
+          git log --oneline -10 --pretty=format:"• %s" > release_notes.txt
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Assemble Release Bundle
-        run: ./gradlew bundleRelease
+        run: ./gradlew bundleRelease --stacktrace
 
       - name: Sign Release
         uses: r0adkll/sign-android-release@v1
+        id: sign_app
         with:
           releaseDirectory: app/build/outputs/bundle/release
           signingKeyBase64: ${{ secrets.SIGNING_STORE_FILE_BASE64 }}
           keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
           alias: ${{ secrets.SIGNING_KEY_ALIAS }}
           keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
+
+      - name: Verify signed bundle
+        run: |
+          if [ ! -f "${{ steps.sign_app.outputs.signedReleaseFile }}" ]; then
+            echo "Error: Signed bundle not found"
+            exit 1
+          fi
+          ls -la app/build/outputs/bundle/release/
+
+      - name: Upload signed bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-bundle-${{ github.run_number }}
+          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          retention-days: 90
 
       - name: Setup Authorization with Google Play Store
         run: echo '${{ secrets.PLAY_KEY }}' > service_account.json
@@ -69,47 +230,143 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_KEY }}
           packageName: com.codetaker.ammusic
-          releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          track: 'internal'
+          releaseFiles: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          track: ${{ inputs.track || 'internal' }}
           status: 'completed'
           whatsNewDirectory: whatsNew/
+          mappingFile: app/build/outputs/mapping/release/mapping.txt
 
-      # Telegram Notification (Success)
+      - name: Upload mapping file
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapping-file-${{ github.run_number }}
+          path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 365
+
+      - name: Clean up sensitive files
+        if: always()
+        run: |
+          rm -f service_account.json
+          rm -f release_notes.txt
+
+      # Enhanced Telegram Notification (Success)
       - name: Notify Telegram (Success)
         if: success()
         run: |
+          TRACK="${{ inputs.track || 'internal' }}"
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d text="✅ Android Build & Upload Success!
-          Project: ${{ github.repository }}
-          Run: #${{ github.run_number }}
-          Track: internal"
+          -d parse_mode="HTML" \
+          -d text="✅ <b>Android Build & Upload Success!</b>
+          
+          📱 <b>Project:</b> ${{ github.repository }}
+          🔢 <b>Run:</b> #${{ github.run_number }}
+          🛤️ <b>Track:</b> ${TRACK}
+          👤 <b>Triggered by:</b> ${{ github.actor }}
+          📝 <b>Commit:</b> ${{ github.event.head_commit.message }}
+          
+          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Details</a>"
 
-      # Telegram Notification (Failure)
+      # Enhanced Telegram Notification (Failure)
       - name: Notify Telegram (Failure)
         if: failure()
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d text="❌ Android Build or Upload Failed!
-          Project: ${{ github.repository }}
-          Run: #${{ github.run_number }}"
+          -d parse_mode="HTML" \
+          -d text="❌ <b>Android Build or Upload Failed!</b>
+          
+          📱 <b>Project:</b> ${{ github.repository }}
+          🔢 <b>Run:</b> #${{ github.run_number }}
+          👤 <b>Triggered by:</b> ${{ github.actor }}
+          📝 <b>Commit:</b> ${{ github.event.head_commit.message }}
+          
+          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Details</a>"
 
-
-      # Discord Notification (Success)
+      # Enhanced Discord Notification (Success)
       - name: Notify Discord (Success)
         if: success()
         run: |
+          TRACK="${{ inputs.track || 'internal' }}"
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"✅ Android Build & Upload Successful! (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
+          -d '{
+            "embeds": [{
+              "title": "✅ Android Build & Upload Successful!",
+              "description": "AAB uploaded to **'${TRACK}'** track",
+              "color": 5763719,
+              "fields": [
+                {"name": "Project", "value": "${{ github.repository }}", "inline": true},
+                {"name": "Run", "value": "#${{ github.run_number }}", "inline": true},
+                {"name": "Track", "value": "'${TRACK}'", "inline": true},
+                {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
+              ],
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "footer": {"text": "GitHub Actions"}
+            }]
+          }' \
           ${{ secrets.DISCORD_WEBHOOK }}
 
-      # Discord Notification (Failure)
+      # Enhanced Discord Notification (Failure)
       - name: Notify Discord (Failure)
         if: failure()
         run: |
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{"content":"❌ Build or Upload Failed! Check GitHub Actions — Run #${{ github.run_number }}"}' \
+          -d '{
+            "embeds": [{
+              "title": "❌ Android Build or Upload Failed!",
+              "description": "Check GitHub Actions for details",
+              "color": 15158332,
+              "fields": [
+                {"name": "Project", "value": "${{ github.repository }}", "inline": true},
+                {"name": "Run", "value": "#${{ github.run_number }}", "inline": true},
+                {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
+              ],
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "footer": {"text": "GitHub Actions"}
+            }]
+          }' \
           ${{ secrets.DISCORD_WEBHOOK }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: distribute
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download signed bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-bundle-${{ github.run_number }}
+          path: ./artifacts
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo "## What's New in v${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          git log --oneline -10 --pretty=format:"• %s" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## Build Information" >> $GITHUB_OUTPUT
+          echo "- Build Number: ${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "- Track: ${{ inputs.track || 'internal' }}" >> $GITHUB_OUTPUT
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+          files: ./artifacts/*
+          draft: false
+          prerelease: ${{ inputs.track != 'production' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,7 +2,7 @@ name: Deploy To Google Play
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   test:
@@ -74,62 +74,42 @@ jobs:
           status: 'completed'
           whatsNewDirectory: whatsNew/
 
-        # Enhanced Telegram Notification (Success)
+      # Telegram Notification (Success)
       - name: Notify Telegram (Success)
         if: success()
         run: |
-          TRACK="${{ inputs.track || 'internal' }}"
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d parse_mode="HTML" \
-          -d text="✅ <b>Android Build & Upload Success!</b>
-          
-          📱 <b>Project:</b> ${{ github.repository }}
-          🔢 <b>Run:</b> #${{ github.run_number }}
-          🛤️ <b>Track:</b> ${TRACK}
-          👤 <b>Triggered by:</b> ${{ github.actor }}
-          📝 <b>Commit:</b> ${{ github.event.head_commit.message }}
-          
-          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Details</a>"
+          -d text="✅ Android Build & Upload Success!
+          Project: ${{ github.repository }}
+          Run: #${{ github.run_number }}
+          Track: internal"
 
-      # Enhanced Telegram Notification (Failure)
+      # Telegram Notification (Failure)
       - name: Notify Telegram (Failure)
         if: failure()
         run: |
           curl -s -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage \
           -d chat_id=${{ secrets.TELEGRAM_CHAT_ID }} \
-          -d parse_mode="HTML" \
-          -d text="❌ <b>Android Build or Upload Failed!</b>
-          
-          📱 <b>Project:</b> ${{ github.repository }}
-          🔢 <b>Run:</b> #${{ github.run_number }}
-          👤 <b>Triggered by:</b> ${{ github.actor }}
-          📝 <b>Commit:</b> ${{ github.event.head_commit.message }}
-          
-          🔗 <a href=\"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\">View Build Details</a>"
+          -d text="❌ Android Build or Upload Failed!
+          Project: ${{ github.repository }}
+          Run: #${{ github.run_number }}"
 
-      # Enhanced Discord Notification (Success)
+
+      # Discord Notification (Success)
       - name: Notify Discord (Success)
         if: success()
         run: |
-          TRACK="${{ inputs.track || 'internal' }}"
           curl -H "Content-Type: application/json" \
           -X POST \
-          -d '{
-            "embeds": [{
-              "title": "✅ Android Build & Upload Successful!",
-              "description": "AAB uploaded to **'"${TRACK}"'** track",
-              "color": 5763719,
-              "fields": [
-                {"name": "Project", "value": "${{ github.repository }}", "inline": true},
-                {"name": "Run", "value": "#${{ github.run_number }}", "inline": true},
-                {"name": "Track", "value": "'"${TRACK}"'", "inline": true},
-                {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
-              ],
-              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
-              "footer": {"text": "GitHub Actions"}
-            }]
-          }' \
+          -d '{"content":"✅ Android Build & Upload Successful! (.aab uploaded to internal track — Run #${{ github.run_number }})"}' \
           ${{ secrets.DISCORD_WEBHOOK }}
 
-      # Enhanced Discord Notification (Failure)
+      # Discord Notification (Failure)
+      - name: Notify Discord (Failure)
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{"content":"❌ Build or Upload Failed! Check GitHub Actions — Run #${{ github.run_number }}"}' \
+          ${{ secrets.DISCORD_WEBHOOK }}

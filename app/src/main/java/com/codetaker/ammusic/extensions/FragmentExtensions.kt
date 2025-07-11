@@ -2,6 +2,8 @@ package com.codetaker.ammusic.extensions
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 
@@ -26,6 +28,13 @@ fun Fragment.replaceFragment(fragment: Fragment, containerId: Int, addToBackStac
 }
 
 fun Fragment.copyToClipboard(text: String) {
-    val clipboardManager = requireContext().getSystemService(ClipboardManager::class.java)
-    clipboardManager.setPrimaryClip(ClipData.newPlainText(null, text))
+    val clipboardManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        requireContext().getSystemService(ClipboardManager::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    }
+
+    val clip = android.content.ClipData.newPlainText("label", text)
+    clipboardManager.setPrimaryClip(clip)
 }

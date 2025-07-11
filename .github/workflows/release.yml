@@ -265,6 +265,19 @@ jobs:
       - name: Grant execute permissions for gradlew
         run: chmod +x gradlew
 
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Generate release notes from recent commits
+          git log --oneline -10 --pretty=format:"• %s" > release_notes.txt
+          
+          # Read the content and set as output using a simpler approach
+          {
+            echo "release_notes<<EOF"
+            cat release_notes.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
       - name: Assemble Release Bundle
         run: ./gradlew bundleRelease --stacktrace
 

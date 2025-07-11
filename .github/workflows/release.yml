@@ -2,259 +2,43 @@ name: Deploy To Google Play
 
 on:
   push:
-    branches: [master, main]
-  pull_request:
-    branches: [master, main]
-  workflow_dispatch:
-    inputs:
-      track:
-        description: 'Play Store track (internal/alpha/beta/production)'
-        required: true
-        default: 'internal'
-        type: choice
-        options:
-          - internal
-          - alpha
-          - beta
-          - production
-      skip_tests:
-        description: 'Skip unit tests'
-        required: false
-        default: true
-        type: boolean
-      skip_lint:
-        description: 'Skip lint checks'
-        required: false
-        default: true
-        type: boolean
-
-permissions:
-  contents: read
-  security-events: write
-  actions: read
-
-env:
-  JAVA_VERSION: 17
-  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2
+    branches: [ master ]
 
 jobs:
   test:
     name: Unit Test
     runs-on: ubuntu-latest
-    if: ${{ !inputs.skip_tests }}
-    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Setup JDK ${{ env.JAVA_VERSION }}
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: 17
           cache: 'gradle'
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
 
       - name: Grant execute permissions for gradlew
         run: chmod +x gradlew
 
       - name: Run unit tests
-        run: ./gradlew clean testDebug --stacktrace
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: |
-            app/build/reports/tests/
-            app/build/test-results/
-          retention-days: 30
-
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-reports
-          path: app/build/reports/coverage/
-          retention-days: 30
-
-  lint:
-    name: Lint Check
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    continue-on-error: true  # Allow workflow to continue even if lint fails
-    if: ${{ !inputs.skip_lint }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
-
-      - name: Grant execute permissions for gradlew
-        run: chmod +x gradlew
-
-      - name: Run lint (continue on error)
-        id: lint_check
-        continue-on-error: true
-        run: |
-          echo "Running lint check..."
-          ./gradlew lintDebug --stacktrace || {
-            echo "lint_failed=true" >> $GITHUB_OUTPUT
-            echo "Lint check failed but continuing workflow..."
-            exit 0
-          }
-
-      - name: Upload lint results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lint-results
-          path: |
-            app/build/reports/lint-results-debug.html
-            app/build/reports/lint-results-debug.xml
-          retention-days: 30
-
-      - name: Comment lint results on PR
-        if: github.event_name == 'pull_request' && steps.lint_check.outputs.lint_failed == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let lintReport = '';
-            try {
-              // Try to read the lint results
-              const lintResults = fs.readFileSync('app/build/reports/lint-results-debug.xml', 'utf8');
-              lintReport = '⚠️ **Lint Check Failed**\n\nPlease check the lint results in the workflow artifacts.\n\n';
-              lintReport += 'Common fixes:\n';
-              lintReport += '1. For API level issues: Use `@RequiresApi` annotation or add version checks\n';
-              lintReport += '2. Create a lint baseline: `./gradlew updateLintBaseline`\n';
-              lintReport += '3. Check the full lint report in the workflow artifacts\n';
-            } catch (e) {
-              lintReport = '⚠️ **Lint Check Failed**\n\nCould not read detailed lint results. Please check the workflow logs.';
-            }
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: lintReport
-            });
-
-      - name: Generate lint baseline (if needed)
-        if: steps.lint_check.outputs.lint_failed == 'true'
-        continue-on-error: true
-        run: |
-          echo "Generating lint baseline..."
-          ./gradlew updateLintBaseline || echo "Failed to generate baseline"
-
-      - name: Upload lint baseline
-        if: steps.lint_check.outputs.lint_failed == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-baseline
-          path: app/lint-baseline.xml
-          retention-days: 30
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: trivy-security-scan-results
-          path: trivy-results.sarif
-          retention-days: 30
+        run: ./gradlew clean testDebug
 
   distribute:
     name: Distribute bundle to Google Play
-    needs: [test, lint, security-scan]
+    needs: test
     runs-on: ubuntu-latest
-    if: |
-      always() && 
-      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') &&
-      !cancelled() &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
-      (needs.security-scan.result == 'success' || needs.security-scan.result == 'skipped')
-    timeout-minutes: 45
-    environment: production
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Setup JDK ${{ env.JAVA_VERSION }}
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: 17
           cache: 'gradle'
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Validate secrets
-        run: |
-          if [ -z "${{ secrets.SIGNING_STORE_FILE_BASE64 }}" ]; then
-            echo "Error: SIGNING_STORE_FILE_BASE64 secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.PLAY_KEY }}" ]; then
-            echo "Error: PLAY_KEY secret is not set"
-            exit 1
-          fi
 
       - name: Version Bump
         uses: chkfung/android-version-actions@v1.2.3
@@ -266,32 +50,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble Release Bundle
-        run: ./gradlew bundleRelease --stacktrace
+        run: ./gradlew bundleRelease
 
       - name: Sign Release
         uses: r0adkll/sign-android-release@v1
-        id: sign_app
         with:
           releaseDirectory: app/build/outputs/bundle/release
           signingKeyBase64: ${{ secrets.SIGNING_STORE_FILE_BASE64 }}
           keyStorePassword: ${{ secrets.SIGNING_STORE_PASSWORD }}
           alias: ${{ secrets.SIGNING_KEY_ALIAS }}
           keyPassword: ${{ secrets.SIGNING_KEY_PASSWORD }}
-
-      - name: Verify signed bundle
-        run: |
-          if [ ! -f "${{ steps.sign_app.outputs.signedReleaseFile }}" ]; then
-            echo "Error: Signed bundle not found"
-            exit 1
-          fi
-          ls -la app/build/outputs/bundle/release/
-
-      - name: Upload signed bundle as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: signed-bundle-${{ github.run_number }}
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
-          retention-days: 90
 
       - name: Setup Authorization with Google Play Store
         run: echo '${{ secrets.PLAY_KEY }}' > service_account.json
@@ -301,26 +69,12 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_KEY }}
           packageName: com.codetaker.ammusic
-          releaseFiles: ${{ steps.sign_app.outputs.signedReleaseFile }}
-          track: ${{ inputs.track || 'internal' }}
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: 'internal'
           status: 'completed'
           whatsNewDirectory: whatsNew/
-          mappingFile: app/build/outputs/mapping/release/mapping.txt
 
-      - name: Upload mapping file
-        uses: actions/upload-artifact@v4
-        with:
-          name: mapping-file-${{ github.run_number }}
-          path: app/build/outputs/mapping/release/mapping.txt
-          retention-days: 365
-
-      - name: Clean up sensitive files
-        if: always()
-        run: |
-          rm -f service_account.json
-          rm -f release_notes.txt
-
-      # Enhanced Telegram Notification (Success)
+        # Enhanced Telegram Notification (Success)
       - name: Notify Telegram (Success)
         if: success()
         run: |
@@ -379,54 +133,3 @@ jobs:
           ${{ secrets.DISCORD_WEBHOOK }}
 
       # Enhanced Discord Notification (Failure)
-      - name: Notify Discord (Failure)
-        if: failure()
-        run: |
-          curl -H "Content-Type: application/json" \
-          -X POST \
-          -d '{
-            "embeds": [{
-              "title": "❌ Android Build or Upload Failed!",
-              "description": "Check GitHub Actions for details",
-              "color": 15158332,
-              "fields": [
-                {"name": "Project", "value": "${{ github.repository }}", "inline": true},
-                {"name": "Run", "value": "#${{ github.run_number }}", "inline": true},
-                {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
-              ],
-              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
-              "footer": {"text": "GitHub Actions"}
-            }]
-          }' \
-          ${{ secrets.DISCORD_WEBHOOK }}
-
-  create-release:
-    name: Create GitHub Release
-    needs: distribute
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-      actions: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download signed bundle
-        uses: actions/download-artifact@v4
-        with:
-          name: signed-bundle-${{ github.run_number }}
-          path: ./artifacts
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Release v${{ github.run_number }}
-          body_path: release_notes.md
-          files: ./artifacts/*
-          draft: false
-          prerelease: ${{ inputs.track != 'production' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

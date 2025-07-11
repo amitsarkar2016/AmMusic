@@ -270,9 +270,13 @@ jobs:
         run: |
           # Generate release notes from recent commits
           git log --oneline -10 --pretty=format:"• %s" > release_notes.txt
-          echo "release_notes<<RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
-          cat release_notes.txt >> $GITHUB_OUTPUT
-          echo "RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
+          
+          # Read the content and set as output using a simpler approach
+          {
+            echo "release_notes<<EOF"
+            cat release_notes.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Assemble Release Bundle
         run: ./gradlew bundleRelease --stacktrace
@@ -373,15 +377,15 @@ jobs:
           -d '{
             "embeds": [{
               "title": "✅ Android Build & Upload Successful!",
-              "description": "AAB uploaded to **'${TRACK}'** track",
+              "description": "AAB uploaded to **'"${TRACK}"'** track",
               "color": 5763719,
               "fields": [
                 {"name": "Project", "value": "${{ github.repository }}", "inline": true},
                 {"name": "Run", "value": "#${{ github.run_number }}", "inline": true},
-                {"name": "Track", "value": "'${TRACK}'", "inline": true},
+                {"name": "Track", "value": "'"${TRACK}"'", "inline": true},
                 {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
               ],
-              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
               "footer": {"text": "GitHub Actions"}
             }]
           }' \
@@ -403,7 +407,7 @@ jobs:
                 {"name": "Run", "value": "#${{ github.run_number }}", "inline": true},
                 {"name": "Triggered by", "value": "${{ github.actor }}", "inline": true}
               ],
-              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'",
               "footer": {"text": "GitHub Actions"}
             }]
           }' \

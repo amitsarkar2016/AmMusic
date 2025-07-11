@@ -270,9 +270,9 @@ jobs:
         run: |
           # Generate release notes from recent commits
           git log --oneline -10 --pretty=format:"• %s" > release_notes.txt
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo "release_notes<<RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
           cat release_notes.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "RELEASE_NOTES_EOF" >> $GITHUB_OUTPUT
 
       - name: Assemble Release Bundle
         run: ./gradlew bundleRelease --stacktrace
@@ -431,23 +431,22 @@ jobs:
       - name: Generate release notes
         id: release_notes
         run: |
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
-          echo "## What's New in v${{ github.run_number }}" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          git log --oneline -10 --pretty=format:"• %s" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "## Build Information" >> $GITHUB_OUTPUT
-          echo "- Build Number: ${{ github.run_number }}" >> $GITHUB_OUTPUT
-          echo "- Track: ${{ inputs.track || 'internal' }}" >> $GITHUB_OUTPUT
-          echo "- Commit: ${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          # Create release notes file
+          echo "## What's New in v${{ github.run_number }}" > release_notes.md
+          echo "" >> release_notes.md
+          git log --oneline -10 --pretty=format:"• %s" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Build Information" >> release_notes.md
+          echo "- Build Number: ${{ github.run_number }}" >> release_notes.md
+          echo "- Track: ${{ inputs.track || 'internal' }}" >> release_notes.md
+          echo "- Commit: ${{ github.sha }}" >> release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
           name: Release v${{ github.run_number }}
-          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
+          body_path: release_notes.md
           files: ./artifacts/*
           draft: false
           prerelease: ${{ inputs.track != 'production' }}
